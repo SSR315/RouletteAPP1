@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roulette</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+      box-sizing: border-box;
+    }
+    #container {
+      position: relative;
+      width: 100%;
+      max-width: 700px;
+      height: 500px;
+      background: white;
+      border: 2px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+    }
+    #label {
+      margin-top: 10px;
+      font-size: 24px;
+      background: #fff;
+      padding: 5px 10px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+    #buttons {
+      margin-top: 20px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 0 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #83C0B4;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    textarea {
+      width: 90%;
+      max-width: 700px;
+      height: 100px;
+      margin-top: 20px;
+      font-size: 16px;
+      padding: 10px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo_truth_editor.png" alt="ロゴ" style="max-width: 90%; height: auto; margin-bottom: 20px;" />
+  <div id="container">
+    <canvas id="wheel" width="500" height="500"></canvas>
+    <div id="label">▲</div>
+  </div>
+  <textarea id="sectionInput" placeholder="請輸入名字（請在中間加上換行！）"></textarea>
+  <div id="buttons">
+    <button onclick="startSpin()">START</button>
+    <button onclick="stopSpin()">STOP</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const radius = 225;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    let angle = 0;
+    let speed = 0;
+    let spinning = false;
+    let animationId;
+
+    function getSections() {
+      const input = document.getElementById("sectionInput").value.trim();
+      return input ? input.split("\n").filter(line => line.trim() !== "") : ["A", "B", "C"];
+    }
+
+    function getColors(n) {
+      const baseColors = ["#B9DBC2", "#40799F", "#F7FEC5", "#83C0B4"];
+      const result = [];
+      for (let i = 0; i < n; i++) {
+        result.push(baseColors[i % baseColors.length]);
+      }
+      return result;
+    }
+
+    function drawWheel() {
+      const sections = getSections();
+      const colors = getColors(sections.length);
+      const sectionAngle = (2 * Math.PI) / sections.length;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < sections.length; i++) {
+        const start = angle + i * sectionAngle;
+        const end = start + sectionAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.fillStyle = colors[i];
+        ctx.arc(centerX, centerY, radius, start, end);
+        ctx.fill();
+
+        // テキスト描画
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(start + sectionAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#000";
+        ctx.font = "16px sans-serif";
+        ctx.fillText(sections[i], radius - 10, 5);
+        ctx.restore();
+      }
+      // 中心点マーク
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+    }
+
+    function rotate() {
+      angle += speed;
+      drawWheel();
+      animationId = requestAnimationFrame(rotate);
+    }
+
+    function startSpin() {
+      if (!spinning) {
+        speed = 0.3 + Math.random() * 0.4;
+        spinning = true;
+        rotate();
+      }
+    }
+
+    function stopSpin() {
+      if (spinning) {
+        const deceleration = () => {
+          speed *= 0.97;
+          if (speed < 0.002) {
+            cancelAnimationFrame(animationId);
+            spinning = false;
+          } else {
+            angle += speed;
+            drawWheel();
+            animationId = requestAnimationFrame(deceleration);
+          }
+        };
+        cancelAnimationFrame(animationId);
+        deceleration();
+      }
+    }
+
+    document.getElementById("sectionInput").addEventListener("input", drawWheel);
+    drawWheel();
+  </script>
+</body>
+</html>
